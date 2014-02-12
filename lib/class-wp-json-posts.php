@@ -832,6 +832,92 @@ class WP_JSON_Posts {
 			$post['ping_status'] = $data['ping_status'];
 		}
 
+		// Terms
+		// *  - terms - array, with taxonomy names as keys and arrays of term IDs as values
+		// *  - terms_names - array, with taxonomy names as keys and arrays of term names as values
+		if ( isset( $data['terms'] ) || isset( $data['terms_names'] ) ) {
+			$post_type_taxonomies = get_object_taxonomies( $post_type->name, 'objects' );
+
+			// accumulate term IDs from terms and terms_names
+			$terms = array();
+
+			// first validate the terms specified by ID
+			if ( isset( $data['terms'] ) && is_array( $data['terms'] ) ) {
+				$taxonomies = array_keys( $data['terms'] );
+
+				// validating term ids
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( ! array_key_exists( $taxonomy , $post_type_taxonomies ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, one of the given taxonomies is not supported by the post type.' ), array( 'status' => 401 ) );
+
+					if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->assign_terms ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to assign a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+					$term_ids = $data['terms'][$taxonomy];
+					foreach ( $term_ids as $term_id ) {
+						$term = get_term_by( 'id', $term_id, $taxonomy );
+
+						if ( ! $term )
+							return new WP_Error( 'json_insert_error', __( 'Invalid term ID' ), array( 'status' => 403 ) );
+
+						$terms[$taxonomy][] = (int) $term_id;
+					}
+				}
+			}
+
+			// now validate terms specified by name
+			if ( isset( $data['terms_names'] ) && is_array( $data['terms_names'] ) ) {
+				$taxonomies = array_keys( $data['terms_names'] );
+
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( ! array_key_exists( $taxonomy , $post_type_taxonomies ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, one of the given taxonomies is not supported by the post type.' ), array( 'status' => 401 ) );
+
+					if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->assign_terms ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to assign a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+					// for hierarchical taxonomies, we can't assign a term when multiple terms in the hierarchy share the same name
+					$ambiguous_terms = array();
+					if ( is_taxonomy_hierarchical( $taxonomy ) ) {
+						$tax_term_names = get_terms( $taxonomy, array( 'fields' => 'names', 'hide_empty' => false ) );
+
+						// count the number of terms with the same name
+						$tax_term_names_count = array_count_values( $tax_term_names );
+
+						// filter out non-ambiguous term names
+						$ambiguous_tax_term_counts = array_filter( $tax_term_names_count, array( $this, '_is_greater_than_one') );
+
+						$ambiguous_terms = array_keys( $ambiguous_tax_term_counts );
+					}
+
+					$term_names = $data['terms_names'][$taxonomy];
+					foreach ( $term_names as $term_name ) {
+						if ( in_array( $term_name, $ambiguous_terms ) )
+							return new WP_Error( 'json_insert_error', __( 'Ambiguous term name used in a hierarchical taxonomy. Please use term ID instead.' ), array( 'status' => 401 ) );
+
+						$term = get_term_by( 'name', $term_name, $taxonomy );
+
+						if ( ! $term ) {
+							// term doesn't exist, so check that the user is allowed to create new terms
+							if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->edit_terms ) )
+								return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to add a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+							// create the new term
+							$term_info = wp_insert_term( $term_name, $taxonomy );
+							if ( is_wp_error( $term_info ) )
+								return new WP_Error( 'json_insert_error', $term_info->get_error_message(), array( 'status' => 500 ) );
+
+							$terms[$taxonomy][] = (int) $term_info['term_id'];
+						} else {
+							$terms[$taxonomy][] = (int) $term->term_id;
+						}
+					}
+				}
+			}
+
+			$post['tax_input'] = $terms;
+		}
+
 		// Post format
 		if ( ! empty( $data['post_format'] ) ) {
 			$formats = get_post_format_slugs();
