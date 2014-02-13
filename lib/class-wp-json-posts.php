@@ -575,7 +575,7 @@ class WP_JSON_Posts {
 			return new WP_Error( 'json_cannot_edit', __( 'Sorry, you cannot edit this post' ), array( 'status' => 403 ) );
 
 		// Post meta
-		$_post['post_meta'] = $this->prepare_meta( $post['ID'] );
+		$_post = array_merge( $_post, $this->prepare_meta( $post['ID'] ) );
 
 		// Entity meta
 		$_post['meta'] = array(
