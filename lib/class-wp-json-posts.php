@@ -854,29 +854,13 @@ class WP_JSON_Posts {
 		$data_post_meta = array_diff($data, $post);
 
 		if ( ! empty( $data_post_meta ) ) {
-		    // As there is no WordPress-y way to get metadata row by key...
-			global $wpdb;
-
-			$post_meta = array();
-			$raw_post_meta = $wpdb->get_results( $wpdb->prepare( "SELECT meta_id, meta_key FROM $wpdb->postmeta WHERE post_id = %d", $post_ID ), ARRAY_A);
-
-			// Recrete as array index for easier existance check
-			foreach ($raw_post_meta as &$_meta) {
-			    $post_meta[$_meta['meta_key']] = (int) $_meta['meta_id'];
-			}
-
-			unset($raw_post_meta); // Free memory
-
 			// Filter meta to delete and delete
-			// Note: see wp-admin/includes/post.php Line 236 of edit_post()
 			foreach ($data_post_meta as $key => $value) {
 				if ($value===null) {
-					if (! isset($post_meta[$key]))
-						continue;
-					if ( is_protected_meta( $key, 'post' ) || ! current_user_can( 'delete_post_meta', $post_ID, $key ) )
-						continue;
+					if (! (is_protected_meta( $key, 'post' ) || ! current_user_can( 'delete_post_meta', $post_ID, $key ) ))
+						delete_post_meta( $post_ID, $key );
 
-					delete_meta( $post_meta[$key] );
+					// Make sure the value is not processed by next loop
 					unset($data['post_meta'][$key]);
 				}
 			}
