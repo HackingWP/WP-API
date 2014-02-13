@@ -847,9 +847,54 @@ class WP_JSON_Posts {
 			return $can_insert;
 		}
 
-		// Post meta
-		// TODO: implement this
+		// Insert or update post
 		$post_ID = $update ? wp_update_post( $post, true ) : wp_insert_post( $post, true );
+
+		// Rest of the data is the Post meta
+		$data_post_meta = array_diff($data, $post);
+
+		if ( ! empty( $data_post_meta ) ) {
+		    // As there is no WordPress-y way to get metadata row by key...
+			global $wpdb;
+
+			$post_meta = array();
+			$raw_post_meta = $wpdb->get_results( $wpdb->prepare( "SELECT meta_id, meta_key FROM $wpdb->postmeta WHERE post_id = %d", $post_ID ), ARRAY_A);
+
+			// Recrete as array index for easier existance check
+			foreach ($raw_post_meta as &$_meta) {
+			    $post_meta[$_meta['meta_key']] = (int) $_meta['meta_id'];
+			}
+
+			unset($raw_post_meta); // Free memory
+
+			// Filter meta to delete and delete
+			// Note: see wp-admin/includes/post.php Line 236 of edit_post()
+			foreach ($data_post_meta as $key => $value) {
+				if ($value===null) {
+					if (! isset($post_meta[$key]))
+						continue;
+					if ( is_protected_meta( $key, 'post' ) || ! current_user_can( 'delete_post_meta', $post_ID, $key ) )
+						continue;
+
+					delete_meta( $post_meta[$key] );
+					unset($data['post_meta'][$key]);
+				}
+			}
+
+			// Add metadata based on https://github.com/WP-API/WP-API/pull/68
+			foreach ($data_post_meta as $key => $value) {
+				if ( is_protected_meta( $key, 'post' ) || ! current_user_can( 'edit_post_meta', $post_ID, $key ) )
+					continue;
+
+				$meta_inserted = update_post_meta( $post_ID, $key, $value );
+
+				if ( is_wp_error( $meta_inserted ) ) {
+					return new WP_Error( 'json_invalid_post_meta_format', __( 'Invalid post meta format.' ), array( 'status' => 400 ) );
+				}
+			}
+
+			$post['post_meta'] = $data['post_meta'];
+		}
 
 		if ( is_wp_error( $post_ID ) ) {
 			return $post_ID;
