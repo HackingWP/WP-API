@@ -851,33 +851,67 @@ class WP_JSON_Posts {
 		$post_ID = $update ? wp_update_post( $post, true ) : wp_insert_post( $post, true );
 
 		// Rest of the data is the Post meta
-		$data_post_meta = array_diff($data, $post);
+		foreach ($data as $k => $v) {
+			// Skip _raw
+			if ($k==='content_raw' || $k==='excerpt_raw') {
+				continue;
+			}
 
+			if (! isset($post[$k]) && ! isset($post['post_'.$k])) {
+				$data_post_meta[$k] = $v;
+			}
+		}
+
+		// PROPOSAL:
+		//
+		// { "mark_as_read": 1 }                    ... value is ment to be singular and only one value should exist
+		// { "colours": ["red", "green", "blue"] }  ... any other colours should be removed and only RGB is ment to remain
+		// { "colours": null }                      ... destroys all values
+		// { "colours": [] }                        ... destroys all values
+		//
+		// Keeps the order of metadata
+		//
+		// TODO: Does not update the output for new post meta state. Needs investigation.
 		if ( ! empty( $data_post_meta ) ) {
-			// Filter meta to delete and delete
+			// Delete meta set explicitly as empty arrays or `null`
 			foreach ($data_post_meta as $key => $value) {
-				if ($value===null) {
+				if ($value===null || (is_array($value) && empty($value))) {
 					if (! (is_protected_meta( $key, 'post' ) || ! current_user_can( 'delete_post_meta', $post_ID, $key ) ))
 						delete_post_meta( $post_ID, $key );
 
 					// Make sure the value is not processed by next loop
-					unset($data['post_meta'][$key]);
+					unset($data_post_meta[$key]);
 				}
 			}
 
 			// Add metadata based on https://github.com/WP-API/WP-API/pull/68
-			foreach ($data_post_meta as $key => $value) {
+			foreach ($data_post_meta as $key => $values) {
 				if ( is_protected_meta( $key, 'post' ) || ! current_user_can( 'edit_post_meta', $post_ID, $key ) )
 					continue;
 
-				$meta_inserted = update_post_meta( $post_ID, $key, $value );
+				if (! is_array($values)) {
+					// No delete procedure needed, just update (handles create)
+					$meta_inserted = update_post_meta( $post_ID, $key, $values );
 
-				if ( is_wp_error( $meta_inserted ) ) {
-					return new WP_Error( 'json_invalid_post_meta_format', __( 'Invalid post meta format.' ), array( 'status' => 400 ) );
+					if ( is_wp_error( $meta_inserted ) ) {
+						return new WP_Error( 'json_invalid_post_meta_format', __( 'Invalid post meta format.' ), array( 'status' => 400 ) );
+					}
+				} else {
+					// Deleting the old values...
+					delete_post_meta( $post_ID, $key);
+
+					// We can maintain the order of values by inserting in order
+					foreach ($values as $value) {
+						$meta_inserted = add_post_meta( $post_ID, $key, $value );
+
+						if ( is_wp_error( $meta_inserted ) ) {
+							return new WP_Error( 'json_invalid_post_meta_format', __( 'Invalid post meta format.' ), array( 'status' => 400 ) );
+						}
+					}
 				}
 			}
 
-			$post['post_meta'] = $data['post_meta'];
+			$post['post_meta'] = $data_post_meta;
 		}
 
 		if ( is_wp_error( $post_ID ) ) {
