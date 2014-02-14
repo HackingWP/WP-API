@@ -939,6 +939,15 @@ class WP_JSON_Posts {
 			}
 
 			$post['tax_input'] = $terms;
+
+			// On put merge old with new terms
+			if ($this->server->method === 'PUT') {
+				$old_terms = wp_get_object_terms( $post['ID'], $post_type_taxonomy_names );
+
+				foreach ($old_terms as $old_term ) {
+					$post['tax_input'][$old_term->taxonomy ][] = $old_term->term_id;
+				}
+			}
 		}
 
 		// Post format
