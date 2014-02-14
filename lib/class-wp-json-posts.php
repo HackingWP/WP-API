@@ -26,20 +26,20 @@ class WP_JSON_Posts {
 	public function registerRoutes( $routes ) {
 		$post_routes = array(
 			// Post endpoints
-			'/posts'             => array(
+			'/posts'			 => array(
 				array( array( $this, 'getPosts' ), WP_JSON_Server::READABLE ),
 				array( array( $this, 'newPost' ),  WP_JSON_Server::CREATABLE | WP_JSON_Server::ACCEPT_JSON ),
 			),
 
 			'/posts/(?P<id>\d+)' => array(
-				array( array( $this, 'getPost' ),    WP_JSON_Server::READABLE ),
-				array( array( $this, 'editPost' ),   WP_JSON_Server::EDITABLE | WP_JSON_Server::ACCEPT_JSON ),
+				array( array( $this, 'getPost' ),	 WP_JSON_Server::READABLE ),
+				array( array( $this, 'editPost' ),	 WP_JSON_Server::EDITABLE | WP_JSON_Server::ACCEPT_JSON ),
 				array( array( $this, 'deletePost' ), WP_JSON_Server::DELETABLE ),
 			),
 			'/posts/(?P<id>\d+)/revisions' => array( '__return_null', WP_JSON_Server::READABLE ),
 
 			// Comments
-			'/posts/(?P<id>\d+)/comments'                  => array(
+			'/posts/(?P<id>\d+)/comments'				   => array(
 				array( array( $this, 'getComments' ), WP_JSON_Server::READABLE ),
 				array( '__return_null', WP_JSON_Server::CREATABLE | WP_JSON_Server::ACCEPT_JSON ),
 			),
@@ -50,9 +50,9 @@ class WP_JSON_Posts {
 			),
 
 			// Meta-post endpoints
-			'/posts/types'               => array( array( $this, 'getPostTypes' ), WP_JSON_Server::READABLE ),
+			'/posts/types'				 => array( array( $this, 'getPostTypes' ), WP_JSON_Server::READABLE ),
 			'/posts/types/(?P<type>\w+)' => array( array( $this, 'getPostType' ), WP_JSON_Server::READABLE ),
-			'/posts/statuses'            => array( array( $this, 'getPostStatuses' ), WP_JSON_Server::READABLE ),
+			'/posts/statuses'			 => array( array( $this, 'getPostStatuses' ), WP_JSON_Server::READABLE ),
 		);
 		return array_merge( $routes, $post_routes );
 	}
@@ -186,24 +186,24 @@ class WP_JSON_Posts {
 	 * @internal 'data' is used here rather than 'content', as get_default_post_to_edit uses $_REQUEST['content']
 	 *
 	 * @param array $content Content data. Can contain:
-	 *  - post_type (default: 'post')
-	 *  - post_status (default: 'draft')
-	 *  - post_title
-	 *  - post_author
-	 *  - post_excerpt
-	 *  - post_content
-	 *  - post_date_gmt | post_date
-	 *  - post_format
-	 *  - post_password
-	 *  - comment_status - can be 'open' | 'closed'
-	 *  - ping_status - can be 'open' | 'closed'
-	 *  - sticky
-	 *  - post_thumbnail - ID of a media item to use as the post thumbnail/featured image
-	 *  - custom_fields - array, with each element containing 'key' and 'value'
-	 *  - terms - array, with taxonomy names as keys and arrays of term IDs as values
-	 *  - terms_names - array, with taxonomy names as keys and arrays of term names as values
-	 *  - enclosure
-	 *  - any other fields supported by wp_insert_post()
+	 *	- post_type (default: 'post')
+	 *	- post_status (default: 'draft')
+	 *	- post_title
+	 *	- post_author
+	 *	- post_excerpt
+	 *	- post_content
+	 *	- post_date_gmt | post_date
+	 *	- post_format
+	 *	- post_password
+	 *	- comment_status - can be 'open' | 'closed'
+	 *	- ping_status - can be 'open' | 'closed'
+	 *	- sticky
+	 *	- post_thumbnail - ID of a media item to use as the post thumbnail/featured image
+	 *	- custom_fields - array, with each element containing 'key' and 'value'
+	 *	- terms - array, with taxonomy names as keys and arrays of term IDs as values
+	 *	- terms_names - array, with taxonomy names as keys and arrays of term names as values
+	 *	- enclosure
+	 *	- any other fields supported by wp_insert_post()
 	 * @return array Post data (see {@see WP_JSON_Posts::getPost})
 	 */
 	function newPost( $data ) {
@@ -500,28 +500,28 @@ class WP_JSON_Posts {
 
 		// prepare common post fields
 		$post_fields = array(
-			'title'        => get_the_title( $post['ID'] ), // $post['post_title'],
-			'status'       => $post['post_status'],
-			'type'         => $post['post_type'],
-			'author'       => (int) $post['post_author'],
-			'content'      => apply_filters( 'the_content', $post['post_content'] ),
-			'parent'       => (int) $post['post_parent'],
-			#'post_mime_type'    => $post['post_mime_type'],
-			'link'          => get_permalink( $post['ID'] ),
+			'title'		   => get_the_title( $post['ID'] ), // $post['post_title'],
+			'status'	   => $post['post_status'],
+			'type'		   => $post['post_type'],
+			'author'	   => (int) $post['post_author'],
+			'content'	   => apply_filters( 'the_content', $post['post_content'] ),
+			'parent'	   => (int) $post['post_parent'],
+			#'post_mime_type'	 => $post['post_mime_type'],
+			'link'			=> get_permalink( $post['ID'] ),
 		);
 		$post_fields_extended = array(
-			'slug'           => $post['post_name'],
-			'guid'           => apply_filters( 'get_the_guid', $post['guid'] ),
-			'excerpt'        => $this->prepare_excerpt( $post['post_excerpt'] ),
-			'menu_order'     => (int) $post['menu_order'],
+			'slug'			 => $post['post_name'],
+			'guid'			 => apply_filters( 'get_the_guid', $post['guid'] ),
+			'excerpt'		 => $this->prepare_excerpt( $post['post_excerpt'] ),
+			'menu_order'	 => (int) $post['menu_order'],
 			'comment_status' => $post['comment_status'],
-			'ping_status'    => $post['ping_status'],
-			'sticky'         => ( $post['post_type'] === 'post' && is_sticky( $post['ID'] ) ),
+			'ping_status'	 => $post['ping_status'],
+			'sticky'		 => ( $post['post_type'] === 'post' && is_sticky( $post['ID'] ) ),
 		);
 		$post_fields_raw = array(
-			'title_raw'   => $post['post_title'],
+			'title_raw'	  => $post['post_title'],
 			'content_raw' => $post['post_content'],
-			'guid_raw'    => $post['guid'],
+			'guid_raw'	  => $post['guid'],
 		);
 
 		// Dates
@@ -580,10 +580,10 @@ class WP_JSON_Posts {
 		// Entity meta
 		$_post['meta'] = array(
 			'links' => array(
-				'self'            => json_url( '/posts/' . $post['ID'] ),
-				'author'          => json_url( '/users/' . $post['post_author'] ),
-				'collection'      => json_url( '/posts' ),
-				'replies'         => json_url( '/posts/' . $post['ID'] . '/comments' ),
+				'self'			  => json_url( '/posts/' . $post['ID'] ),
+				'author'		  => json_url( '/users/' . $post['post_author'] ),
+				'collection'	  => json_url( '/posts' ),
+				'replies'		  => json_url( '/posts/' . $post['ID'] . '/comments' ),
 				'version-history' => json_url( '/posts/' . $post['ID'] . '/revisions' ),
 			),
 		);
@@ -623,7 +623,7 @@ class WP_JSON_Posts {
 		foreach ( $custom_fields as $meta_key => $meta_value ) {
 			// Don't expose protected fields.
 			if ( is_protected_meta( $meta_key ) )
-			    unset( $custom_fields[$meta_key] );
+				unset( $custom_fields[$meta_key] );
 		}
 
 		return apply_filters( 'json_prepare_meta', $custom_fields );
@@ -832,6 +832,115 @@ class WP_JSON_Posts {
 			$post['ping_status'] = $data['ping_status'];
 		}
 
+		$post_type_taxonomy_names = get_object_taxonomies( $post['post_type'] );
+		$data_terms = array();
+
+		foreach ($post_type_taxonomy_names as $post_type_taxonomy) {
+			if (isset($data[$post_type_taxonomy])) {
+				$data_terms[$post_type_taxonomy] = $data[$post_type_taxonomy];
+			}
+		}
+
+		// Terms
+		// *  - terms - array, with taxonomy names as keys and arrays of term IDs as values
+		// *  - terms_names - array, with taxonomy names as keys and arrays of term names as values
+		if (! empty($data_terms)) {
+			$post_type_taxonomies = get_object_taxonomies( $post_type->name, 'objects' );
+
+			$term_ids = $term_names = array();
+
+			// Split terms by numeric and stings
+			foreach ((array) $data_terms as $taxonomy => $terms) {
+				foreach ((array) $terms as $v) {
+					if ((int) $v=== $v) {
+						$term_ids[$taxonomy][] = $v;
+					} else {
+						$term_names[$taxonomy][] = $v;
+					}
+				}
+			}
+
+			// accumulate term IDs from terms and terms_names
+			$terms = array();
+
+			// first validate the terms specified by ID
+			if ( isset( $term_ids ) && is_array( $term_ids ) ) {
+				$taxonomies = array_keys( $term_ids );
+
+				// validating term ids
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( ! array_key_exists( $taxonomy , $post_type_taxonomies ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, one of the given taxonomies is not supported by the post type.' ), array( 'status' => 401 ) );
+
+					if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->assign_terms ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to assign a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+					$term_ids = $term_ids[$taxonomy];
+					foreach ( $term_ids as $term_id ) {
+						$term = get_term_by( 'id', $term_id, $taxonomy );
+
+						if ( ! $term )
+							return new WP_Error( 'json_insert_error', __( 'Invalid term ID' ), array( 'status' => 403 ) );
+
+						$terms[$taxonomy][] = (int) $term_id;
+					}
+				}
+			}
+
+			// now validate terms specified by name
+			if ( isset( $term_names ) && is_array( $term_names ) ) {
+				$taxonomies = array_keys( $term_names );
+
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( ! array_key_exists( $taxonomy , $post_type_taxonomies ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, one of the given taxonomies is not supported by the post type.' ), array( 'status' => 401 ) );
+
+					if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->assign_terms ) )
+						return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to assign a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+					// for hierarchical taxonomies, we can't assign a term when multiple terms in the hierarchy share the same name
+					$ambiguous_terms = array();
+					if ( is_taxonomy_hierarchical( $taxonomy ) ) {
+						$tax_term_names = get_terms( $taxonomy, array( 'fields' => 'names', 'hide_empty' => false ) );
+
+						// count the number of terms with the same name
+						$tax_term_names_count = array_count_values( $tax_term_names );
+
+						// filter out non-ambiguous term names
+						$ambiguous_tax_term_counts = array_filter( $tax_term_names_count, array( $this, '_is_greater_than_one') );
+
+						$ambiguous_terms = array_keys( $ambiguous_tax_term_counts );
+					}
+
+					$term_names = $term_names[$taxonomy];
+					foreach ( $term_names as $term_name ) {
+						if ( in_array( $term_name, $ambiguous_terms ) )
+							return new WP_Error( 'json_insert_error', __( 'Ambiguous term name used in a hierarchical taxonomy. Please use term ID instead.' ), array( 'status' => 401 ) );
+
+						$term = get_term_by( 'name', $term_name, $taxonomy );
+
+						if ( ! $term ) {
+							// term doesn't exist, so check that the user is allowed to create new terms
+							if ( ! current_user_can( $post_type_taxonomies[$taxonomy]->cap->edit_terms ) )
+								return new WP_Error( 'json_insert_error', __( 'Sorry, you are not allowed to add a term to one of the given taxonomies.' ), array( 'status' => 401 ) );
+
+							// create the new term
+							$term_info = wp_insert_term( $term_name, $taxonomy );
+
+							if ( is_wp_error( $term_info ) )
+								return new WP_Error( 'json_insert_error', $term_info->get_error_message(), array( 'status' => 500 ) );
+
+							$terms[$taxonomy][] = (int) $term_info['term_id'];
+						} else {
+							$terms[$taxonomy][] = (int) $term->term_id;
+						}
+					}
+				}
+			}
+
+			$post['tax_input'] = $terms;
+		}
+
 		// Post format
 		if ( ! empty( $data['post_format'] ) ) {
 			$formats = get_post_format_slugs();
@@ -856,7 +965,7 @@ class WP_JSON_Posts {
 		}
 
 		// Sticky
-		if ( isset( $post['sticky'] ) )  {
+		if ( isset( $post['sticky'] ) )	 {
 			if ( $post['sticky'] )
 				stick_post( $data['ID'] );
 			else
