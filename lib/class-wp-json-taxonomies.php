@@ -30,7 +30,7 @@ class WP_JSON_Taxonomies {
 
 	/**
 	 * Get taxonomies
-	 * 
+	 *
 	 * @param string $type Post type to get taxonomies for
 	 * @return array Taxonomy data
 	 */
@@ -51,7 +51,7 @@ class WP_JSON_Taxonomies {
 
 	/**
 	 * Get taxonomies
-	 * 
+	 *
 	 * @param string $type Post type to get taxonomies for
 	 * @return array Taxonomy data
 	 */
@@ -169,9 +169,9 @@ class WP_JSON_Taxonomies {
 	public function add_term_data( $data, $post, $context ) {
 		$post_type_taxonomies = get_object_taxonomies( $post['post_type'] );
 		$terms = wp_get_object_terms( $post['ID'], $post_type_taxonomies );
-		$data['terms'] = array();
+
 		foreach ( $terms as $term ) {
-			$data['terms'][ $term->taxonomy ][] = $this->prepare_term( $term, $post['post_type'] );
+			$data[ $term->taxonomy ][] = $this->prepare_term( $term, $post['post_type'] );
 		}
 
 		return $data;
