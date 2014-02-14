@@ -838,6 +838,8 @@ class WP_JSON_Posts {
 		foreach ($post_type_taxonomy_names as $post_type_taxonomy) {
 			if (isset($data[$post_type_taxonomy])) {
 				$data_terms[$post_type_taxonomy] = $data[$post_type_taxonomy];
+
+				unset ($data[$post_type_taxonomy]);
 			}
 		}
 
